@@ -1,14 +1,6 @@
-from RNMC import *
+from rnmc.rnmc import *
 import sys
 import pickle
-
-sys.path.append('./mrnet/src')
-
-
-import mrnet.network
-import mrnet.core.mol_entry
-import mrnet.core.reactions
-import mrnet.core.rates
 
 
 if len(sys.argv) != 2:

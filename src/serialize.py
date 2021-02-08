@@ -1,8 +1,8 @@
 import sys
 sys.path.append('./mrnet/src')
-from mrnet.network.reaction_network import *
+from mrnet.network.reaction_network import ReactionNetwork
 from monty.serialization import loadfn
-from RNMC import *
+from rnmc import *
 
 
 if len(sys.argv) != 4:
