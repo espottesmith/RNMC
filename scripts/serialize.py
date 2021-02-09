@@ -1,8 +1,7 @@
 import sys
-sys.path.append('./mrnet/src')
-from mrnet.network.reaction_generation import *
+from mrnet.network.reaction_generation import ReactionGenerator
 from monty.serialization import loadfn
-from RNMC import *
+from rnmc.rnmc import SerializedReactionNetwork, serialize_reaction_network, serialize_simulation_parameters
 
 
 if len(sys.argv) != 4:
@@ -22,13 +21,11 @@ initial_state_data = [
     ('./mrnet/test_files/reaction_network_files/EC.xyz',0,30)
     ]
 
-rnsd = ReactionNetworkSerializationData(reaction_generator,
-                                        initial_state_data,
-                                        network_folder,
-                                        param_folder,
-                                        logging = True)
-
-
+rnsd = SerializedReactionNetwork(reaction_generator,
+                                 initial_state_data,
+                                 network_folder,
+                                 param_folder,
+                                 logging = True)
 
 serialize_reaction_network(rnsd)
 serialize_simulation_parameters(seeds=range(1000,100000),

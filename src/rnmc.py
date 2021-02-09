@@ -13,6 +13,7 @@ from pymatgen.analysis.fragmenter import metal_edge_extender
 
 from mrnet.core.reactions import Reaction
 from mrnet.network.reaction_network import ReactionNetwork
+from mrnet.network.reaction_generation import ReactionGenerator
 
 from rnmc.visualize import visualize_molecule_entry
 
@@ -24,7 +25,7 @@ class SerializedReactionNetwork:
     """
 
     def __init__(self,
-                 reaction_network: ReactionNetwork,
+                 reaction_network: Union[ReactionNetwork, ReactionGenerator],
                  initial_state_data: Tuple[MoleculeGraph, Union[int, float]],
                  network_folder: Path,
                  param_folder: Path,
@@ -39,24 +40,23 @@ class SerializedReactionNetwork:
             logging (bool):
             positive_weight_coefficient (float):
         """
-        reactions = reaction_network.reactions
+        if isinstance(reaction_network, ReactionGenerator):
+            reactions = reaction_network
+        else:
+            reactions = reaction_network.reactions
         entries_list = reaction_network.entries_list
         self.network_folder = network_folder
         self.param_folder = param_folder
         self.logging = logging
         self.positive_weight_coefficient = positive_weight_coefficient
 
-        self._extract_index_species_mapping(reactions)
+        self._extract_index_mappings(reactions)
         if self.logging:
-            print("extracted index species mapping")
+            print("extracted index mappings")
 
         self._extract_species_data(entries_list)
         if self.logging:
             print("extracted species data")
-
-        self._extract_index_reaction_mapping(reactions)
-        if self.logging:
-            print("extracted index reaction mapping")
 
         self.initial_state = np.zeros(self.number_of_species)
         for (mg, count) in initial_state_data:
@@ -138,9 +138,9 @@ class SerializedReactionNetwork:
 
         return None
 
-    def __extract_index_mappings(self,
-                                       reactions: List[Reaction],
-                                       use_thermo_cost: bool = False):
+    def _extract_index_mappings(self,
+                                reactions: List[Reaction],
+                                use_thermo_cost: bool = False):
         """
         Assign each species an index and construct
         forward and backward mappings between indicies and species.
@@ -203,7 +203,7 @@ class SerializedReactionNetwork:
         self.index_to_reaction = index_to_reaction
 
     def _extract_species_data(self, entries_list):
-        species_data = {}
+        species_data = dict()
         for entry in entries_list:
             entry_id = entry.entry_id
             if entry_id in self.species_to_index:
