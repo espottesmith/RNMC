@@ -138,8 +138,9 @@ class SerializedReactionNetwork:
 
         return None
 
-    def _extract_index_species_mapping(self,
-                                        reactions: List[Reaction]):
+    def __extract_index_mappings(self,
+                                       reactions: List[Reaction],
+                                       use_thermo_cost: bool = False):
         """
         Assign each species an index and construct
         forward and backward mappings between indicies and species.
@@ -151,10 +152,13 @@ class SerializedReactionNetwork:
             None
 
         """
-        species_to_index = {}
+        species_to_index = dict()
+        index_to_reaction = list()
         index = 0
+        reaction_count = 0
 
         for reaction in reactions:
+            reaction_count += 1
             entry_ids = {e.entry_id for e in reaction.reactants + reaction.products}
             for entry_id in entry_ids:
                 species = entry_id
@@ -162,30 +166,6 @@ class SerializedReactionNetwork:
                     species_to_index[species] = index
                     index += 1
 
-
-        rev = {i : species for species, i in species_to_index.items()}
-        self.number_of_species = index
-        self.species_to_index = species_to_index
-        self.index_to_species = rev
-
-    def _extract_index_reaction_mapping(self,
-                                        reactions: List[Reaction],
-                                        use_thermo_cost = False):
-        """
-        Assign each reaction an index and construct
-        a mapping from reaction indices to reaction data
-
-        Args:
-            reactions: (list of Reaction objects): reactions to be used for mapping
-            use_thermo_cost (bool): If True (default False), use a thermodynamic
-                cost function to determine effective rate constants:
-                If delta_G < 0: k = exp^(-delta_G)
-                Else: k = exp^(-delta_G / kT), where T = 298.15
-
-        """
-        self.number_of_reactions = 2 * len(reactions)
-        index_to_reaction = []
-        for reaction in reactions:
             reactant_indices = [self.species_to_index[reactant]
                                 for reactant in reaction.reactant_ids]
             product_indices = [self.species_to_index[product]
@@ -215,6 +195,11 @@ class SerializedReactionNetwork:
                     rate = math.exp(- dG)
                 reaction['rate_constant'] = rate
 
+        rev = {i : species for species, i in species_to_index.items()}
+        self.number_of_reactions = 2 * reaction_count
+        self.number_of_species = index
+        self.species_to_index = species_to_index
+        self.index_to_species = rev
         self.index_to_reaction = index_to_reaction
 
     def _extract_species_data(self, entries_list):

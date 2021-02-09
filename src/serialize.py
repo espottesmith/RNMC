@@ -1,8 +1,8 @@
 import sys
 sys.path.append('./mrnet/src')
-from mrnet.network.reaction_network import ReactionNetwork
+from mrnet.network.reaction_generation import *
 from monty.serialization import loadfn
-from rnmc import *
+from RNMC import *
 
 
 if len(sys.argv) != 4:
@@ -14,26 +14,15 @@ network_folder = sys.argv[2]
 param_folder = sys.argv[3]
 
 molecule_entries = loadfn(molecule_list_json)
-reaction_network = ReactionNetwork.from_input_entries(molecule_entries)
-reaction_network.build()
+reaction_generator = ReactionGenerator(molecule_entries)
 
-foo = ReactionNetwork.identify_concerted_rxns_via_intermediates(
-    reaction_network,
-    [e.parameters["ind"] for e in reaction_network.entries_list])
-
-concerted_reactions = ReactionNetwork.add_concerted_rxns(
-    reaction_network,
-    reaction_network,
-    foo)
-
-reaction_network.reactions.extend(concerted_reactions)
 
 initial_state_data = [
     ('./Li.xyz', 1, 30),
     ('./mrnet/test_files/reaction_network_files/EC.xyz',0,30)
     ]
 
-rnsd = ReactionNetworkSerializationData(reaction_network,
+rnsd = ReactionNetworkSerializationData(reaction_generator,
                                         initial_state_data,
                                         network_folder,
                                         param_folder,
