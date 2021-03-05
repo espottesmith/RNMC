@@ -9,7 +9,6 @@ import random
 import sys
 
 from pymatgen.analysis.graphs import MoleculeGraph
-from pymatgen.analysis.fragmenter import metal_edge_extender
 
 from mrnet.core.reactions import Reaction
 from mrnet.network.reaction_network import ReactionNetwork
@@ -26,7 +25,7 @@ class SerializedReactionNetwork:
 
     def __init__(self,
                  reaction_network: Union[ReactionNetwork, ReactionGenerator],
-                 initial_state_data: Tuple[MoleculeGraph, Union[int, float]],
+                 initial_state_data: List[Tuple[MoleculeGraph, Union[int, float]]],
                  network_folder: Path,
                  param_folder: Path,
                  logging: bool = False,
@@ -125,11 +124,8 @@ class SerializedReactionNetwork:
                 (or None, if no match is found)
         """
 
-        ### correction to the molecule graph
-        target_mol_graph = metal_edge_extender(target_mol_graph)
-
         match = False
-        for index, data in enumerate(self.species_data):
+        for index, data in self.species_data.items():
             species_mol_graph = data.mol_graph
             if data.charge == target_mol_graph.molecule.charge:
                 match = target_mol_graph.isomorphic_to(species_mol_graph)
@@ -166,9 +162,9 @@ class SerializedReactionNetwork:
                     species_to_index[species] = index
                     index += 1
 
-            reactant_indices = [self.species_to_index[reactant]
+            reactant_indices = [species_to_index[reactant]
                                 for reactant in reaction.reactant_ids]
-            product_indices = [self.species_to_index[product]
+            product_indices = [species_to_index[product]
                                for product in reaction.product_ids]
 
             forward_free_energy = reaction.free_energy_A
@@ -220,7 +216,7 @@ class SerializedReactionNetwork:
         """
         folder = self.network_folder
 
-        os.mkdir(folder)
+        folder.mkdir(exist_ok=True)
 
         with open((folder / "number_of_species").as_posix(), 'w') as f:
             f.write(str(self.number_of_species) + '\n')
@@ -285,35 +281,39 @@ class SimulationAnalyser:
             network_folder (Path):
         """
 
-        reaction_histories_folder = network_folder / 'reaction_histories'
-        time_histories_folder = network_folder / 'time_histories'
+        self.network_folder = network_folder
+        self.histories_folder =  network_folder / 'simulation_histories'
         self.rnsd = rnsd
         self.initial_state = rnsd.initial_state
         self.reaction_pathways_dict = dict()
         self.reaction_histories = list()
         self.time_histories = list()
 
-        reaction_histories_contents = sorted([x.as_posix() for x in reaction_histories_folder.iterdir()])
-        time_histories_contents = sorted([x.as_posix() for x in time_histories_folder.iterdir()])
+        histories_contents = sorted([x.name for x in self.histories_folder.iterdir()])
+        reaction_histories_contents = [x for x in histories_contents if x.startswith("reactions")]
+        time_histories_contents = [x for x in histories_contents if x.startswith("times")]
 
-        if reaction_histories_contents != time_histories_contents:
+        reaction_seeds = [x.split("_")[1] for x in reaction_histories_contents]
+        time_seeds = [x.split("_")[1] for x in reaction_histories_contents]
+
+        if reaction_seeds != time_seeds:
             raise ValueError("Reactions and times not from same set of initial seeds!")
 
         for filename in reaction_histories_contents:
             history = list()
-            with open((reaction_histories_folder / filename).as_posix(), 'r') as f:
+            with open((self.histories_folder / filename).as_posix()) as f:
                 for line in f:
-                    history.append(int(line))
+                    history.append(int(line.strip()))
 
-            self.reaction_histories.append(history)
+            self.reaction_histories.append(np.array(history))
 
         for filename in time_histories_contents:
             history = list()
-            with open((time_histories_folder / filename).as_posix(), 'r') as f:
+            with open((self.histories_folder / filename).as_posix()) as f:
                 for line in f:
-                    history.append(int(line))
+                    history.append(float(line.strip()))
 
-            self.time_histories.append(history)
+            self.time_histories.append(np.array(history))
 
         self.number_simulations = len(self.reaction_histories)
 
@@ -404,7 +404,7 @@ class SimulationAnalyser:
             None
         """
         self.rnsd.visualize_molecules()
-        folder = self.rnsd.network_folder / ('report_' + str(target_species_index))
+        folder = self.network_folder / ('report_' + str(target_species_index))
         folder.mkdir(exist_ok=True)
 
         with open((folder / 'report.tex').as_posix(),'w') as f:
@@ -467,7 +467,7 @@ class SimulationAnalyser:
 
             f.write('\\end{document}')
 
-    def generate_time_depenedent_profiles(self):
+    def generate_time_dependent_profiles(self) -> Dict:
         """
         Generate plottable time-dependent profiles of species and rxns from raw KMC output, obtain final states.
 
@@ -486,14 +486,14 @@ class SimulationAnalyser:
         final_states = list()
 
         for n_sim in range(self.number_simulations):
-            sim_time_history = self.time_histories[n_sim]
+            cumulative_time = self.time_histories[n_sim]
             sim_rxn_history = self.reaction_histories[n_sim]
             sim_species_profile = dict()
             sim_rxn_profile = dict()
-            cumulative_time = list(np.cumsum(np.array(sim_time_history)))
-            state = copy.deepcopy(self.rnsd.initial_state)
-            for mol_ind in state:
-                sim_species_profile[mol_ind] = [(0.0, self.rnsd.initial_state[mol_ind])]
+            state = dict()
+            for index, initial_value in enumerate(self.rnsd.initial_state):
+                sim_species_profile[index] = [(0.0, initial_value)]
+                state[index] = initial_value
             total_iterations = len(sim_rxn_history)
 
             for iter in range(total_iterations):
@@ -550,7 +550,64 @@ class SimulationAnalyser:
             "final_states": final_states,
         }
 
-    def final_state_analysis(self, final_states: List[Dict[int, int]]) -> List[Tuple]:
+    def generate_final_states(self) -> List:
+        """
+        Generate plottable time-dependent profiles of species and rxns from raw KMC output, obtain final states.
+
+        Args:
+            None
+
+        Returns:
+            dict containing species profiles, reaction profiles, and final states from each simulation.
+                {species_profiles: [ {mol_ind1: [(t0, n(t0)), (t1, n(t1)...], mol_ind2: [...] ,  ... }, {...}, ... ]
+                reaction_profiles: [ {rxn_ind1: [t0, t1, ...], rxn_ind2: ..., ...}, {...}, ...]
+                final_states: [ {mol_ind1: n1, mol_ind2: ..., ...}, {...}, ...] }
+
+        """
+        final_states = list()
+
+        for n_sim in range(self.number_simulations):
+            sim_rxn_history = self.reaction_histories[n_sim]
+            state = dict()
+            for index, initial_value in enumerate(self.rnsd.initial_state):
+                state[index] = initial_value
+            total_iterations = len(sim_rxn_history)
+
+            for iter in range(total_iterations):
+                rxn_ind = sim_rxn_history[iter]
+
+                reacts = self.rnsd.index_to_reaction[rxn_ind]["reactants"]
+                prods = self.rnsd.index_to_reaction[rxn_ind]["products"]
+
+                for r_ind in reacts:
+                    if r_ind == -1:
+                        continue
+                    try:
+                        state[r_ind] -= 1
+                        if state[r_ind] < 0:
+                            raise ValueError(
+                                "State invalid: negative specie: {}".format(r_ind)
+                            )
+                    except KeyError:
+                        raise ValueError(
+                            "Reactant specie {} given is not in state!".format(
+                                r_ind
+                            )
+                        )
+                for p_ind in prods:
+                    if p_ind == -1:
+                        continue
+                    else:
+                        if p_ind in state:
+                            state[p_ind] += 1
+                        else:
+                            state[p_ind] = 1
+
+            final_states.append(state)
+
+        return final_states
+
+    def final_state_analysis(self, final_states: List[Dict[int, Union[int, float]]]) -> List[Tuple]:
         """
         Gather statistical analysis of the final states of simulation.
 
@@ -659,6 +716,8 @@ def serialize_simulation_parameters(
     else:
         raise ValueError("Need either number of simulations or set of seeds to proceed!")
 
+    folder.mkdir(exist_ok=True)
+
     if step_cutoff is not None:
         with open((folder / "step_cutoff").as_posix(), 'w') as f:
             f.write(('%d' % step_cutoff) + '\n')
@@ -681,7 +740,7 @@ def serialize_simulation_parameters(
             f.write(str(seed) + '\n')
 
 
-def collect_duplicate_pathways(pathways):
+def collect_duplicate_pathways(pathways: List[List[int]]) -> Dict:
     pathway_dict = {}
     for pathway in pathways:
         key = frozenset(pathway)
@@ -692,7 +751,9 @@ def collect_duplicate_pathways(pathways):
     return pathway_dict
 
 
-def update_state(state, reaction):
+def update_state(
+        state: Dict[int, Union[int, float]],
+        reaction: Dict):
     for species_index in reaction['reactants']:
         state[species_index] -= 1
 

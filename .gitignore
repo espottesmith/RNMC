@@ -3,3 +3,4 @@ __pycache__
 network_from_paper
 -2.15V_ledc_lemc_network_pickle_wo_hop_1123
 .idea
+rnmc.egg-info
