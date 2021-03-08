@@ -12,7 +12,7 @@ from pymatgen.analysis.graphs import MoleculeGraph
 
 from mrnet.core.reactions import Reaction
 from mrnet.network.reaction_network import ReactionNetwork
-from mrnet.network.reaction_generation import ReactionGenerator
+# from mrnet.network.reaction_generation import ReactionGenerator
 
 from rnmc.visualize import visualize_molecule_entry
 
@@ -24,7 +24,7 @@ class SerializedReactionNetwork:
     """
 
     def __init__(self,
-                 reaction_network: Union[ReactionNetwork, ReactionGenerator],
+                 reaction_network: Union[ReactionNetwork],
                  initial_state_data: List[Tuple[MoleculeGraph, Union[int, float]]],
                  network_folder: Path,
                  param_folder: Path,
@@ -39,10 +39,9 @@ class SerializedReactionNetwork:
             logging (bool):
             positive_weight_coefficient (float):
         """
-        if isinstance(reaction_network, ReactionGenerator):
-            reactions = reaction_network
-        else:
-            reactions = reaction_network.reactions
+        # if isinstance(reaction_network, ReactionGenerator):
+        #     reactions = reaction_network
+        reactions = reaction_network.reactions
         entries_list = reaction_network.entries_list
         self.network_folder = network_folder
         self.param_folder = param_folder
