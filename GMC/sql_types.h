@@ -15,8 +15,10 @@ struct ReactionSql {
     int number_of_products;
     int reactant_1;
     int reactant_2;
+    int reactant_3;
     int product_1;
     int product_2;
+    int product_3;
     double rate;
     static std::string sql_statement;
     static void action(ReactionSql &r, sqlite3_stmt *stmt);
@@ -42,7 +44,9 @@ struct TrajectoriesSql {
 struct FactorsSql {
     double factor_zero;
     double factor_two;
+    double factor_three;
     double factor_duplicate;
+    double factor_triple;
     static std::string sql_statement;
     static void action(FactorsSql &r, sqlite3_stmt *stmt);
 };
@@ -64,7 +68,7 @@ void MetadataSql::action(MetadataSql &r, sqlite3_stmt *stmt) {
 
 std::string ReactionSql::sql_statement =
     "SELECT reaction_id, number_of_reactants, number_of_products, "
-    "reactant_1, reactant_2, product_1, product_2, rate FROM reactions;";
+    "reactant_1, reactant_2, reactant_3, product_1, product_2, product_3, rate FROM reactions;";
 
 
 void ReactionSql::action(ReactionSql &r, sqlite3_stmt *stmt) {
@@ -73,9 +77,11 @@ void ReactionSql::action(ReactionSql &r, sqlite3_stmt *stmt) {
         r.number_of_products = sqlite3_column_int(stmt, 2);
         r.reactant_1 = sqlite3_column_int(stmt, 3);
         r.reactant_2 = sqlite3_column_int(stmt, 4);
-        r.product_1 = sqlite3_column_int(stmt, 5);
-        r.product_2 = sqlite3_column_int(stmt, 6);
-        r.rate = sqlite3_column_double(stmt, 7);
+        r.reactant_3 = sqlite3_column_int(stmt, 5);
+        r.product_1 = sqlite3_column_int(stmt, 6);
+        r.product_2 = sqlite3_column_int(stmt, 7);
+        r.product_3 = sqlite3_column_int(stmt, 8);
+        r.rate = sqlite3_column_double(stmt, 9);
 };
 
 std::string InitialStateSql::sql_statement =
@@ -98,12 +104,14 @@ void TrajectoriesSql::action (TrajectoriesSql& t, sqlite3_stmt* stmt) {
 };
 
 std::string FactorsSql::sql_statement =
-    "SELECT factor_zero, factor_two, factor_duplicate FROM factors";
+    "SELECT factor_zero, factor_two, factor_three, factor_duplicate, factor_triple FROM factors";
 
 
 void FactorsSql::action (FactorsSql &r, sqlite3_stmt *stmt) {
     r.factor_zero = sqlite3_column_double(stmt, 0);
     r.factor_two = sqlite3_column_double(stmt, 1);
-    r.factor_duplicate = sqlite3_column_double(stmt, 2);
+    r.factor_three = sqlite3_column_double(stmt, 2);
+    r.factor_duplicate = sqlite3_column_double(stmt, 3);
+    r.factor_triple = sqlite3_column_double(stmt, 4);
 };
 

@@ -11,8 +11,8 @@ struct Reaction {
     uint8_t number_of_reactants;
     uint8_t number_of_products;
 
-    int reactants[2];
-    int products[2];
+    int reactants[3];
+    int products[3];
 
     double rate;
 };
@@ -39,7 +39,9 @@ struct ReactionNetwork {
 
     double factor_zero; // rate modifer for reactions with zero reactants
     double factor_two; // rate modifier for reactions with two reactants
+    double factor_three; // rate modifier for reactions with three reactants
     double factor_duplicate; // rate modifier for reactions of form A + A -> ...
+    double factor_triple; // rate modifier for reactions of form A + A + A -> ...
 
     // number of times a reaction needs to fire before we compute its
     // node in the dependency graph
@@ -91,7 +93,9 @@ ReactionNetwork::ReactionNetwork(
     FactorsSql factors_row = factors_reader.next().value();
     factor_zero = factors_row.factor_zero;
     factor_two = factors_row.factor_two;
+    factor_three = factors_row.factor_three;
     factor_duplicate = factors_row.factor_duplicate;
+    factor_triple = factors_row.factor_triple;
 
     // loading intial state
     initial_state.resize(metadata_row.number_of_species);
@@ -135,8 +139,8 @@ ReactionNetwork::ReactionNetwork(
         Reaction reaction = {
             .number_of_reactants = number_of_reactants,
             .number_of_products = number_of_products,
-            .reactants = { reaction_row.reactant_1, reaction_row.reactant_2 },
-            .products = { reaction_row.product_1, reaction_row.product_2},
+            .reactants = { reaction_row.reactant_1, reaction_row.reactant_2, reaction_row.reactant_3 },
+            .products = { reaction_row.product_1, reaction_row.product_2, reaction_row.product_3 },
             .rate = reaction_row.rate
         };
 
@@ -256,7 +260,7 @@ double ReactionNetwork::compute_propensity(
 
 
     // two reactants
-    else {
+    else if (reaction.number_of_reactants == 2) {
         if (reaction.reactants[0] == reaction.reactants[1])
             p = factor_duplicate
                 * factor_two
@@ -269,6 +273,26 @@ double ReactionNetwork::compute_propensity(
                 * state[reaction.reactants[0]]
                 * state[reaction.reactants[1]]
                 * reaction.rate;
+    }
+
+    // three reactants
+    else {
+        if (reaction.reactants[0] == reaction.reactants[1] && reaction.reactants[0] != reaction.reactants[2]) {
+            p = factor_duplicate * factor_three * state[reaction.reactants[0]] * (state[reaction.reactants[0]] - 1) * state[reaction.reactants[2]] * reaction.rate;
+        }
+        else if (reaction.reactants[0] == reaction.reactants[2] && reaction.reactants[0] != reaction.reactants[1]) {
+            p = factor_duplicate * factor_three * state[reaction.reactants[0]] * (state[reaction.reactants[0]] - 1) * state[reaction.reactants[1]] * reaction.rate;
+        }
+        else if (reaction.reactants[1] == reaction.reactants[2] && reaction.reactants[0] != reaction.reactants[1]) {
+            p = factor_duplicate * factor_three * state[reaction.reactants[1]] * (state[reaction.reactants[1]] - 1) * state[reaction.reactants[0]] * reaction.rate;
+        }
+        else if (reaction.reactants[0] == reaction.reactants[1] && reaction.reactants[0] == reaction.reactants[2]) {
+            p = factor_triple * factor_three * state[reaction.reactants[0]] * (state[reaction.reactants[0]] - 1) * (state[reaction.reactants[0]] - 2) * reaction.rate;
+        }
+        else {
+            p = factor_three * state[reaction.reactants[0]] * state[reaction.reactants[1]] * state[reaction.reactants[2]] * reaction.rate;
+        }
+
     }
 
     return p;
