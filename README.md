@@ -70,8 +70,10 @@ the factors can be used to modify rates of reactions which have zero or two reac
             number_of_products  INTEGER NOT NULL,
             reactant_1          INTEGER NOT NULL,
             reactant_2          INTEGER NOT NULL,
+            reactant_3          INTEGER NOT NULL,
             product_1           INTEGER NOT NULL,
             product_2           INTEGER NOT NULL,
+            product_3           INTEGER NOT NULL,
             rate                REAL NOT NULL
     );
 
@@ -90,7 +92,9 @@ There are 3 tables in the initial state database:
     CREATE TABLE factors (
             factor_zero         REAL NOT NULL,
             factor_two          REAL NOT NULL,
-            factor_duplicate    REAL NOT NULL)
+            factor_three        REAL NOT NULL,
+            factor_duplicate    REAL NOT NULL,
+            factor_triple       REAL NOT NULL)
 ```
 
 ```
