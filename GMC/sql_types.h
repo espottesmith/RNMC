@@ -31,6 +31,12 @@ struct InitialStateSql {
     static void action(InitialStateSql &r, sqlite3_stmt *stmt);
 };
 
+struct FixedStateSql {
+    int species_id;
+    static std::string sql_statement;
+    static void action(FixedStateSql &r, sqlite3_stmt *stmt);
+};
+
 struct TrajectoriesSql {
     int seed;
     int step;
@@ -90,6 +96,14 @@ std::string InitialStateSql::sql_statement =
 void InitialStateSql::action(InitialStateSql &r, sqlite3_stmt *stmt) {
     r.species_id = sqlite3_column_int(stmt, 0);
     r.count = sqlite3_column_int(stmt, 1);
+}
+
+
+std::string FixedStateSql::sql_statement = 
+    "SELECT species_id from fixed_state;";
+
+void FixedStateSql::action(FixedStateSql &r, sqlite3_stmt *stmt) {
+    r.species_id = sqlite3_column_int(stmt, 0);
 }
 
 

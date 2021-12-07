@@ -35,6 +35,7 @@ struct ReactionNetwork {
 
     std::vector<Reaction> reactions; // list of reactions
     std::vector<int> initial_state; // initial state for all the simulations
+    std::vector<bool> fixed_state; // species which should be held fixed during simulation
     std::vector<double> initial_propensities; // initial propensities for all the reactions
 
     double factor_zero; // rate modifer for reactions with zero reactants
@@ -83,8 +84,6 @@ ReactionNetwork::ReactionNetwork(
     dependency_graph =
         std::vector<DependentsNode> (metadata_row.number_of_reactions);
 
-
-
     // setting reaction network factors
     SqlStatement<FactorsSql> factors_statement (initial_state_database);
     SqlReader<FactorsSql> factors_reader (factors_statement);
@@ -110,6 +109,19 @@ ReactionNetwork::ReactionNetwork(
         InitialStateSql initial_state_row = maybe_initial_state_row.value();
         species_id = initial_state_row.species_id;
         initial_state[species_id] = initial_state_row.count;
+    }
+
+
+    fixed_state.resize(0);
+    fixed_state.resize(metadata_row.number_of_species, false);
+    SqlStatement<FixedStateSql> fixed_state_statement (initial_state_database);
+    SqlReader<FixedStateSql> fixed_state_reader (fixed_state_statement);
+
+    while(std::optional<FixedStateSql> maybe_fixed_state_row =
+          fixed_state_reader.next()) {
+        FixedStateSql fixed_state_row = maybe_fixed_state_row.value();
+        species_id = fixed_state_row.species_id;
+        fixed_state[species_id] = true;
     }
 
     // loading reactions
