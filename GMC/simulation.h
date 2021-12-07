@@ -80,13 +80,16 @@ bool Simulation<Solver>::execute_step() {
         for (int m = 0;
              m < reaction_network.reactions[next_reaction].number_of_reactants;
              m++) {
-            state[reaction_network.reactions[next_reaction].reactants[m]]--;
+            if (!reaction_network.fixed_state[reaction_network.reactions[next_reaction].reactants[m]]) {
+                state[reaction_network.reactions[next_reaction].reactants[m]]--;
+            }
         }
 
         for (int m = 0;
              m < reaction_network.reactions[next_reaction].number_of_products;
              m++) {
-            state[reaction_network.reactions[next_reaction].products[m]]++;
+            if (!reaction_network.fixed_state[reaction_network.reactions[next_reaction].products[m]]) {
+                state[reaction_network.reactions[next_reaction].products[m]]++;
         }
 
         // update propensities
