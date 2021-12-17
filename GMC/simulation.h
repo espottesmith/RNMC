@@ -90,6 +90,7 @@ bool Simulation<Solver>::execute_step() {
              m++) {
             if (!reaction_network.fixed_state[reaction_network.reactions[next_reaction].products[m]]) {
                 state[reaction_network.reactions[next_reaction].products[m]]++;
+            }
         }
 
         // update propensities

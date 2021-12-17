@@ -113,6 +113,7 @@ ReactionNetwork::ReactionNetwork(
     SqlStatement<FixedStateSql> fixed_state_statement (initial_state_database);
     SqlReader<FixedStateSql> fixed_state_reader (fixed_state_statement);
 
+    int fixed;
     while(std::optional<FixedStateSql> maybe_fixed_state_row =
           fixed_state_reader.next()) {
         FixedStateSql fixed_state_row = maybe_fixed_state_row.value();
