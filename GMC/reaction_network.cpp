@@ -340,3 +340,29 @@ void ReactionNetwork::store_checkpoint(std::vector<ReactionNetworkStateHistoryEl
 } // store_state_history()
 
 /*---------------------------------------------------------------------------*/
+
+void ReactionNetwork::print_state_propensities(long double propensity_sum,
+                                               std::vector<double> &propensities,
+                                               std::vector<int> &state,
+                                               std::string filename) {
+
+    std::ofstream myfile;
+    myfile.open (filename);
+
+    myfile << "Begin Printing Propensities" << std::endl;
+    
+    for(int i = 0; i < int(propensities.size()); i++) {
+        myfile << "Reaction: " << i << " propensity: " << propensities[i] << std::endl;
+    }
+
+    myfile << "Begin Printing State" << std::endl;
+    
+    for(int i = 0; i < int(state.size()); i++) {
+        myfile << "Species: " << i << "quantity: " << state[i] << std::endl;
+    }
+
+    myfile << "total propensity_sum" << propensity_sum;
+
+    myfile.close();
+
+} // print_state_propensities()

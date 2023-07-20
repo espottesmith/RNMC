@@ -93,6 +93,11 @@ public:
         &state_packet, std::vector<int> &state,
         unsigned long int &seed, int step, double time, 
         std::vector<CutoffHistoryElement> &cutoff_packet);
+
+    void print_state_propensities(long double propensity_sum,
+                                  std::vector<double> &propensities,
+                                  std::vector<int> &state,
+                                  std::string filename);
 };
 
 #endif

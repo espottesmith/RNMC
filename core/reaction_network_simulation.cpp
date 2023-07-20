@@ -7,6 +7,12 @@ void ReactionNetworkSimulation<Solver>::init() {
     solver = Solver(this->seed, std::ref(reaction_network.initial_propensities));
     this->update_function = [&] (Update update) {solver.update(update);};
 
+    reaction_network.print_state_propensities(
+        solver.get_propensity_sum(),
+        reaction_network.initial_propensities,
+        reaction_network.initial_state,
+        "initial_check.txt"
+    );
 } // init()
 
 /* ---------------------------------------------------------------------- */
