@@ -47,7 +47,6 @@ bool ReactionNetworkSimulation<Solver>::execute_step() {
             history.reserve(this->history_chunk_size);
         }
 
-
         // increment step
         this->step++;
 

@@ -8,6 +8,8 @@
 #include <fstream>
 #include <map>
 #include <cassert> 
+#include <iostream>
+
 #include "stdio.h"
 #include "stdlib.h"
 #include <string>
@@ -20,7 +22,6 @@
 #define DELTALOCAL 10000
 #define DELTA 32768
 #define EPSILON 0.0001
-
 
 #define FLERR __FILE__,__LINE__
 
@@ -36,25 +37,20 @@ struct Site {
     Site() {}                               // default constructor does nothing
 
     Site(uint32_t i_in, uint32_t j_in,      // custom constructor for convenience 
-        uint32_t k_in, float x_in, float y_in, float z_in,
+        uint32_t k_in,
         int species_in,
         bool can_adsorb_in) :
         i(i_in), j(j_in), k(k_in),
-        x(x_in), y(y_in), z(z_in), 
         species(species_in), can_adsorb(can_adsorb_in) { }
 
     uint32_t i;                             // site location on lattice
     uint32_t j;
     uint32_t k;
-    float x;                                // location in space
-    float y;
-    float z;
     int species;                            // species at site
     bool can_adsorb;                        // is the site in contact with the electrolyte?
 };
 
 class Lattice {
-
 private:
 
     /* ----------------------- handle memory ---------------------------------- */
@@ -72,8 +68,6 @@ private:
 
     void sfree(void *ptr);                                        // safe free
 
-    
-    
     /* ----------------------- structural information ------------------------ */
     
     int ilo, ihi, klo, khi, jlo, jhi;                // geometry info neighbors
@@ -113,8 +107,7 @@ public:
     
     void offsets_3d(int **cmapone);
     
-    void add_site(uint32_t i_in, uint32_t j_in, 
-                  uint32_t k_in, float x_in, float y_in, float z_in,
+    void add_site(uint32_t i_in, uint32_t j_in, uint32_t k_in, 
                   bool can_adsorb_in, bool update_neighbors_in, bool meta_neighbors_in);
 
     void delete_site(int id);
@@ -124,7 +117,6 @@ public:
     float get_latconst();
 
     float get_maxz();
-
 };
 
 #endif
